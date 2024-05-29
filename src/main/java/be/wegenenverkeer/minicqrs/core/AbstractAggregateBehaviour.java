@@ -28,6 +28,7 @@ import be.wegenenverkeer.minicqrs.core.snapshot.SnapshotRepository;
 import be.wegenenverkeer.minicqrs.parent.aggregate.TestAggregateDomain.BaseEvent;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
+import reactor.util.retry.RetryBackoffSpec;
 
 public abstract class AbstractAggregateBehaviour<ID, S, C, E> {
   private static Logger LOG = LoggerFactory.getLogger(AbstractAggregateBehaviour.class);
@@ -57,7 +58,7 @@ public abstract class AbstractAggregateBehaviour<ID, S, C, E> {
         .createCache(BaseEvent.class.getCanonicalName(),
             CacheConfigurationBuilder
                 .newCacheConfigurationBuilder(String.class, StateHolder.class,
-                    ResourcePoolsBuilder.heap(100)) // TODO: configure
+                    ResourcePoolsBuilder.heap(getCacheSize()))
                 .build());
   }
 
@@ -89,9 +90,7 @@ public abstract class AbstractAggregateBehaviour<ID, S, C, E> {
           return stateAndEvents.events().stream().map(e -> e.event()).collect(Collectors.toList());
         })
         // 9: retry when we get a duplicatekey exception
-        .retryWhen(
-            Retry.backoff(10, Duration.ofMillis(100)) // TODO: configure
-                .filter(t -> t instanceof DuplicateKeyException));
+        .retryWhen(getRetryBackoffSpec().filter(t -> t instanceof DuplicateKeyException));
   }
 
   private Mono<List<EventHolder<E>>> getEventsSince(String id, long since) {
@@ -181,5 +180,13 @@ public abstract class AbstractAggregateBehaviour<ID, S, C, E> {
 
   protected String fromId(ID id) {
     return id.toString();
+  }
+
+  protected int getCacheSize() {
+    return 100;
+  }
+
+  protected RetryBackoffSpec getRetryBackoffSpec() {
+    return Retry.backoff(10, Duration.ofMillis(100));
   }
 }

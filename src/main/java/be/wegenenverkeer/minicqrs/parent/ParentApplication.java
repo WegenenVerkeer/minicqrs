@@ -33,7 +33,7 @@ public class ParentApplication {
 				.createCache(ProjectionId.class.getCanonicalName(),
 						CacheConfigurationBuilder
 								.newCacheConfigurationBuilder(ProjectionId.class, Long.class,
-										ResourcePoolsBuilder.heap(100)) // TODO: configure
+										ResourcePoolsBuilder.heap(100))
 								.build());
 	}
 }

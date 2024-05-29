@@ -129,7 +129,7 @@ public abstract class AbstractProjection<ID,E> {
       long since = e.getValue().orElse(0L);
       // LOG.info("getEventsSince on " + shard + " since " + since);
       return journalRepository
-          .findForProjection(shard, eventType.toCanonical(), since, 100) // TODO: configurable
+          .findForProjection(shard, eventType.toCanonical(), since, getMaxEvents())
           .collectList();
     }).toList()).collectList().map(list -> list.stream()
         .flatMap(Collection::stream)
@@ -156,5 +156,9 @@ public abstract class AbstractProjection<ID,E> {
 
   protected String fromId(ID id) {
     return id.toString();
+  }
+
+  protected int getMaxEvents() {
+    return 100;
   }
 }
