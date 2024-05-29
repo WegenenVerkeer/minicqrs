@@ -5,10 +5,10 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 public class TestAggregateDomain {
   // ------ Commands
-  public static interface BaseCommand {
+  public static sealed interface BaseCommand {
   };
 
-  public static class IncrementCounter implements BaseCommand {
+  public static final class IncrementCounter implements BaseCommand {
   }
 
   // ------ State
@@ -24,7 +24,7 @@ public class TestAggregateDomain {
       @JsonSubTypes.Type(value = CounterIncremented.class, name = "CounterIncremented") 
     }
   )
-  public static interface BaseEvent {
+  public static sealed interface BaseEvent {
   };
 
   public static record CounterIncremented(int previousValue, int currentValue) implements BaseEvent {

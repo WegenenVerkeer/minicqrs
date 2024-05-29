@@ -56,7 +56,6 @@ public class TestOneByOneProjection extends AbstractOneByOneProjection<UUID,Base
   protected Mono<Void> handleEvent(String id, BaseEvent event) {
     return switch (event) {
       case CounterIncremented e -> increment(UUID.fromString(id), e);
-      default -> throw new UnsupportedOperationException("Unimplemented event " + event);
     };
   }
 

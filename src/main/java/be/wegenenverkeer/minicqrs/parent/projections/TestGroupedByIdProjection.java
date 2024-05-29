@@ -59,7 +59,6 @@ public class TestGroupedByIdProjection extends AbstractGroupedByIdWithStateProje
   protected Integer handleEvent(Integer state, UUID id, BaseEvent event) {
     return switch (event) {
       case CounterIncremented e -> state + 1;
-      default -> throw new UnsupportedOperationException("Unimplemented event " + event);
     };
   }
 

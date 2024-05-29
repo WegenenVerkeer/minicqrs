@@ -42,7 +42,6 @@ public class TestAggregateBehaviour extends
   protected State applyEvent(UUID id, State state, BaseEvent event) {
     return switch (event) {
       case CounterIncremented e -> state.increment();
-      default -> throw new UnsupportedOperationException("Unimplemented event " + event);
     };
   }
 
@@ -50,7 +49,6 @@ public class TestAggregateBehaviour extends
   protected List<BaseEvent> applyCommand(UUID id, State state, BaseCommand command) {
     return switch (command) {
       case IncrementCounter c -> Arrays.asList(new CounterIncremented(state.counter(), state.counter() + 1));
-      default -> throw new UnsupportedOperationException("Unimplemented command " + command);
     };
   }
 
