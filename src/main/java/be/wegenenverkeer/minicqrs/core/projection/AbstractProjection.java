@@ -27,7 +27,7 @@ import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
-public abstract class AbstractProjection<E> {
+public abstract class AbstractProjection<ID,E> {
   private static Logger LOG = LoggerFactory.getLogger(AbstractProjection.class);
 
   private ProjectionOffsetRepository projectionOffsetRepository;
@@ -152,4 +152,9 @@ public abstract class AbstractProjection<E> {
   protected abstract Mono<Void> handleEvents(List<EventHolder<E>> events);
 
   public abstract String getProjectionName();
+  protected abstract ID toId(String id);
+
+  protected String fromId(ID id) {
+    return id.toString();
+  }
 }

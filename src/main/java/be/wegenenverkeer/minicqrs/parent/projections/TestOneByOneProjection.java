@@ -22,7 +22,7 @@ import be.wegenenverkeer.minicqrs.parent.aggregate.TestAggregateDomain.CounterIn
 import reactor.core.publisher.Mono;
 
 //@Service
-public class TestOneByOneProjection extends AbstractOneByOneProjection<BaseEvent> {
+public class TestOneByOneProjection extends AbstractOneByOneProjection<UUID,BaseEvent> {
   private static Logger LOG = LoggerFactory.getLogger(TestOneByOneProjection.class);
 
   private TestProjectionRepository testProjectionRepository;
@@ -60,4 +60,9 @@ public class TestOneByOneProjection extends AbstractOneByOneProjection<BaseEvent
     };
   }
 
+
+  @Override
+  protected UUID toId(String id) {
+    return UUID.fromString(id);
+  }
 }

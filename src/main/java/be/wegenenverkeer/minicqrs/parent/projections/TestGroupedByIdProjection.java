@@ -21,7 +21,7 @@ import be.wegenenverkeer.minicqrs.parent.aggregate.TestAggregateDomain.CounterIn
 import reactor.core.publisher.Mono;
 
 @Service
-public class TestGroupedByIdProjection extends AbstractGroupedByIdWithStateProjection<BaseEvent, Integer> {
+public class TestGroupedByIdProjection extends AbstractGroupedByIdWithStateProjection<UUID, BaseEvent, Integer> {
   private TestProjectionRepository testProjectionRepository;
 
   public TestGroupedByIdProjection(ObjectMapper objectMapper, Cache<ProjectionId, Long> cache,
@@ -41,26 +41,31 @@ public class TestGroupedByIdProjection extends AbstractGroupedByIdWithStateProje
   }
 
   @Override
-  protected Integer getEmptyState(String id) {
+  protected Integer getEmptyState(UUID id) {
     return 0;
   }
 
   @Override
-  protected Mono<Integer> getState(String id) {
-    return testProjectionRepository.findById(UUID.fromString(id)).map(e -> e.counter());
+  protected Mono<Integer> getState(UUID id) {
+    return testProjectionRepository.findById(id).map(e -> e.counter());
   }
 
   @Override
-  protected Mono<Void> saveState(String id, Integer state) {
-    return testProjectionRepository.upsert(UUID.fromString(id), state).then();
+  protected Mono<Void> saveState(UUID id, Integer state) {
+    return testProjectionRepository.upsert(id, state).then();
   }
 
   @Override
-  protected Integer handleEvent(Integer state, String id, BaseEvent event) {
+  protected Integer handleEvent(Integer state, UUID id, BaseEvent event) {
     return switch (event) {
       case CounterIncremented e -> state + 1;
       default -> throw new UnsupportedOperationException("Unimplemented event " + event);
     };
+  }
+
+  @Override
+  protected UUID toId(String id) {
+    return UUID.fromString(id);
   }
 
 }

@@ -14,9 +14,9 @@ import reactor.core.publisher.Flux;
 public class ProjectionManager {
   private static Logger LOG = LoggerFactory.getLogger(ProjectionManager.class);
 
-  private List<? extends AbstractProjection<?>> projections;
+  private List<? extends AbstractProjection<?,?>> projections;
 
-  ProjectionManager(List<? extends AbstractProjection<?>> projections) {
+  ProjectionManager(List<? extends AbstractProjection<?,?>> projections) {
     this.projections = projections;
   }
 

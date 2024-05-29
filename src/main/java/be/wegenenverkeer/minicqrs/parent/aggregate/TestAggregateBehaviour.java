@@ -20,7 +20,7 @@ import be.wegenenverkeer.minicqrs.parent.aggregate.TestAggregateDomain.State;
 
 @Service
 public class TestAggregateBehaviour extends
-    AbstractAggregateBehaviour<State, BaseCommand, BaseEvent> {
+    AbstractAggregateBehaviour<UUID, State, BaseCommand, BaseEvent> {
   public static int NUMBER_OF_SHARDS = 10;
 
   public TestAggregateBehaviour(ObjectMapper objectMapper,
@@ -39,7 +39,7 @@ public class TestAggregateBehaviour extends
   }
 
   @Override
-  protected State applyEvent(State state, BaseEvent event) {
+  protected State applyEvent(UUID id, State state, BaseEvent event) {
     return switch (event) {
       case CounterIncremented e -> state.increment();
       default -> throw new UnsupportedOperationException("Unimplemented event " + event);
@@ -47,7 +47,7 @@ public class TestAggregateBehaviour extends
   }
 
   @Override
-  protected List<BaseEvent> applyCommand(State state, BaseCommand command) {
+  protected List<BaseEvent> applyCommand(UUID id, State state, BaseCommand command) {
     return switch (command) {
       case IncrementCounter c -> Arrays.asList(new CounterIncremented(state.counter(), state.counter() + 1));
       default -> throw new UnsupportedOperationException("Unimplemented command " + command);
@@ -60,10 +60,15 @@ public class TestAggregateBehaviour extends
   }
 
   @Override
-  protected long getShard(String id) {
+  protected long getShard(UUID id) {
     // 10 shards for this aggregate
     long shard = Math.abs(id.hashCode()) % NUMBER_OF_SHARDS;
     return shard;
+  }
+
+  @Override
+  protected UUID toId(String id) {
+    return UUID.fromString(id);
   }
 
 }

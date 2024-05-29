@@ -29,7 +29,7 @@ import be.wegenenverkeer.minicqrs.parent.aggregate.TestAggregateDomain.BaseEvent
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 
-public abstract class AbstractAggregateBehaviour<S, C, E> {
+public abstract class AbstractAggregateBehaviour<ID, S, C, E> {
   private static Logger LOG = LoggerFactory.getLogger(AbstractAggregateBehaviour.class);
 
   private Cache<String, StateHolder<S>> cache;
@@ -64,19 +64,20 @@ public abstract class AbstractAggregateBehaviour<S, C, E> {
   private static record StateAndEventHolder<S, E>(StateHolder<S> state, List<EventHolder<E>> events) {
   }
 
-  public Mono<List<E>> processCommand(String id, C command) {
+  public Mono<List<E>> processCommand(ID id, C command) {
     LOG.info("processCommand");
+    String internalId = fromId(id);
     // 1: get state + sequence from in-memory or snapshot
-    return getStateFromMemory(id)
+    return getStateFromMemory(internalId)
         .flatMap(maybeMemoryState -> maybeMemoryState.map(memoryState -> Mono.just(Optional.of(memoryState)))
             // 2: if not exists, get state + sequence from snapshots
-            .orElseGet(() -> getLatestSnapshot(id)))
+            .orElseGet(() -> getLatestSnapshot(internalId)))
         // 3: get events from journal with sequence > last sequence
-        .flatMap(maybeState -> getEventsSince(id, maybeState.map(state -> state.sequence()).orElse(0L))
+        .flatMap(maybeState -> getEventsSince(internalId, maybeState.map(state -> state.sequence()).orElse(0L))
             // 4: apply events tot state
-            .map(events -> applyEvents(maybeState.orElse(emptyStateHolder(id)), events))
+            .map(events -> applyEvents(id, maybeState.orElse(emptyStateHolder(internalId)), events))
             // 5: produce events from command and state
-            .map(state -> applyCommandToState(state, command)))
+            .map(state -> applyCommandToState(id, state, command)))
         // 6: save events in journal
         .flatMap(stateAndEvents -> saveEvents(stateAndEvents.events()).map(_ignore -> stateAndEvents))
         // 7: if needed, save snapshot
@@ -109,7 +110,7 @@ public abstract class AbstractAggregateBehaviour<S, C, E> {
       return Mono.just(0);
     } else {
       String id = events.getFirst().id();
-      long shard = getShard(id);
+      long shard = getShard(toId(id));
       List<JournalEntity<E>> journalEvents = toJournal(shard, events);
       return journalRepository.saveAll(journalEvents).collectList().map(r -> r.size());
     }
@@ -147,33 +148,38 @@ public abstract class AbstractAggregateBehaviour<S, C, E> {
     return new StateHolder<>(id, emptyState(), 0L);
   }
 
-  private StateHolder<S> applyEvents(StateHolder<S> state, List<EventHolder<E>> events) {
+  private StateHolder<S> applyEvents(ID id, StateHolder<S> state, List<EventHolder<E>> events) {
     for (EventHolder<E> e : events) {
-      state = state.advance(applyEvent(state.state(), e.event()));
+      state = state.advance(applyEvent(id, state.state(), e.event()));
     }
     return state;
   }
 
-  private StateAndEventHolder<S, E> applyCommandToState(StateHolder<S> state,
-      C command) {
+  private StateAndEventHolder<S, E> applyCommandToState(ID id, StateHolder<S> state, C command) {
     LOG.info("applyCommandToState " + Thread.currentThread().getName());
     // LOG.info("applyCommandToState ");
-    List<E> events = applyCommand(state.state(), command);
+    List<E> events = applyCommand(id, state.state(), command);
     List<EventHolder<E>> eventHolders = new ArrayList<>(events.size());
     Instant occured = Instant.now();
     for (E e : events) {
-      state = state.advance(applyEvent(state.state(), e));
+      state = state.advance(applyEvent(id, state.state(), e));
       eventHolders.add(new EventHolder<>(state.id(), e, state.sequence(), occured));
     }
     return new StateAndEventHolder<>(state, eventHolders);
 
   }
 
-  protected abstract S applyEvent(S state, E event);
+  protected abstract S applyEvent(ID id, S state, E event);
 
-  protected abstract List<E> applyCommand(S state, C command);
+  protected abstract List<E> applyCommand(ID id, S state, C command);
 
   protected abstract S emptyState();
 
-  protected abstract long getShard(String id);
+  protected abstract long getShard(ID id);
+
+  protected abstract ID toId(String id);
+
+  protected String fromId(ID id) {
+    return id.toString();
+  }
 }

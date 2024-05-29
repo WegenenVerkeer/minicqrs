@@ -13,7 +13,7 @@ import be.wegenenverkeer.minicqrs.core.journal.JournalRepository;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-public abstract class AbstractOneByOneProjection<E> extends AbstractProjection<E> {
+public abstract class AbstractOneByOneProjection<ID,E> extends AbstractProjection<ID,E> {
   public AbstractOneByOneProjection(ObjectMapper objectMapper, Cache<ProjectionId, Long> cache,
       Set<Long> shards, TransactionalOperator rxtx,
       ProjectionOffsetRepository projectionOffsetRepository,
