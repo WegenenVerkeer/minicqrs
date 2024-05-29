@@ -29,13 +29,13 @@ import be.wegenenverkeer.minicqrs.parent.aggregate.TestAggregateDomain.BaseEvent
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 
-public abstract class AbstractAggregateBehaviour<ID, S, C, E> {
+public abstract class AbstractAggregateBehaviour<S, C, E> {
   private static Logger LOG = LoggerFactory.getLogger(AbstractAggregateBehaviour.class);
 
-  private Cache<ID, StateHolder<ID, S>> cache;
+  private Cache<String, StateHolder<S>> cache;
   private ProjectionManager projectionManager;
-  private JournalRepository<ID, E> journalRepository;
-  private SnapshotRepository<ID, S> snapshotRepository;
+  private JournalRepository<E> journalRepository;
+  private SnapshotRepository<S> snapshotRepository;
   private ObjectMapper objectMapper;
   private JavaType eventType;
   private JavaType stateType;
@@ -44,27 +44,27 @@ public abstract class AbstractAggregateBehaviour<ID, S, C, E> {
   public AbstractAggregateBehaviour(ObjectMapper objectMapper,
       CacheManager cacheManager,
       ProjectionManager projectionManager,
-      JournalRepository<ID, E> journalRepository,
-      SnapshotRepository<ID, S> snapshotRepository,
-      Class<E> eventClass, Class<ID> idClass, Class<S> stateClass) {
+      JournalRepository<E> journalRepository,
+      SnapshotRepository<S> snapshotRepository,
+      Class<E> eventClass, Class<S> stateClass) {
     this.projectionManager = projectionManager;
     this.eventType = TypeFactory.defaultInstance().constructType(eventClass);
     this.stateType = TypeFactory.defaultInstance().constructType(stateClass);
     this.objectMapper = objectMapper;
     this.journalRepository = journalRepository;
     this.snapshotRepository = snapshotRepository;
-    this.cache = (Cache<ID, StateHolder<ID, S>>) (Cache) cacheManager
+    this.cache = (Cache<String, StateHolder<S>>) (Cache) cacheManager
         .createCache(BaseEvent.class.getCanonicalName(),
             CacheConfigurationBuilder
-                .newCacheConfigurationBuilder(idClass, StateHolder.class,
+                .newCacheConfigurationBuilder(String.class, StateHolder.class,
                     ResourcePoolsBuilder.heap(100)) // TODO: configure
                 .build());
   }
 
-  private static record StateAndEventHolder<ID, S, E>(StateHolder<ID, S> state, List<EventHolder<ID, E>> events) {
+  private static record StateAndEventHolder<S, E>(StateHolder<S> state, List<EventHolder<E>> events) {
   }
 
-  public Mono<List<E>> processCommand(ID id, C command) {
+  public Mono<List<E>> processCommand(String id, C command) {
     LOG.info("processCommand");
     // 1: get state + sequence from in-memory or snapshot
     return getStateFromMemory(id)
@@ -93,29 +93,29 @@ public abstract class AbstractAggregateBehaviour<ID, S, C, E> {
                 .filter(t -> t instanceof DuplicateKeyException));
   }
 
-  private Mono<List<EventHolder<ID, E>>> getEventsSince(ID id, long since) {
+  private Mono<List<EventHolder<E>>> getEventsSince(String id, long since) {
     LOG.info("getEventsSince on " + id + " since " + since);
     return journalRepository.findByIdAndTypeAndSequenceGreaterThanOrderBySequence(id, eventType.toCanonical(), since)
         .map(ThrowingFunction.of(entity -> entity.toHolder(objectMapper, eventType))).collectList();
   }
 
-  private List<JournalEntity<ID, E>> toJournal(long shard, List<EventHolder<ID, E>> events) {
-    return events.stream().map(event -> new JournalEntity<ID, E>(objectMapper, event, eventType.toCanonical(), shard))
+  private List<JournalEntity<E>> toJournal(long shard, List<EventHolder<E>> events) {
+    return events.stream().map(event -> new JournalEntity<E>(objectMapper, event, eventType.toCanonical(), shard))
         .toList();
   }
 
-  private Mono<Integer> saveEvents(List<EventHolder<ID, E>> events) {
+  private Mono<Integer> saveEvents(List<EventHolder<E>> events) {
     if (events.isEmpty()) {
       return Mono.just(0);
     } else {
-      ID id = events.getFirst().id();
+      String id = events.getFirst().id();
       long shard = getShard(id);
-      List<JournalEntity<ID, E>> journalEvents = toJournal(shard, events);
+      List<JournalEntity<E>> journalEvents = toJournal(shard, events);
       return journalRepository.saveAll(journalEvents).collectList().map(r -> r.size());
     }
   }
 
-  private Mono<Optional<StateHolder<ID, S>>> getStateFromMemory(ID id) {
+  private Mono<Optional<StateHolder<S>>> getStateFromMemory(String id) {
     return Mono.fromCallable(() -> {
       var state = Optional.ofNullable(cache.get(id));
       LOG.info("getStateFromMemory " + state.map(s -> Long.toString(s.sequence())).orElse(" not found "));
@@ -123,43 +123,43 @@ public abstract class AbstractAggregateBehaviour<ID, S, C, E> {
     });
   }
 
-  private void saveStateInMemory(StateHolder<ID, S> state) {
+  private void saveStateInMemory(StateHolder<S> state) {
     cache.put(state.id(), state);
   }
 
-  private Mono<Optional<StateHolder<ID, S>>> getLatestSnapshot(ID id) {
+  private Mono<Optional<StateHolder<S>>> getLatestSnapshot(String id) {
     LOG.info("getLatestSnapshot");
     return snapshotRepository.findByIdAndType(id, stateType.toCanonical())
         .map(ThrowingFunction.of(entity -> entity.toHolder(objectMapper, stateType)))
         .map(Optional::of).defaultIfEmpty(Optional.empty());
   }
 
-  private Mono<Integer> saveSnapshot(StateHolder<ID, S> state) {
+  private Mono<Integer> saveSnapshot(StateHolder<S> state) {
     if (state.sequence() % 10 == 0) {
-      return snapshotRepository.replace(new SnapshotEntity<ID, S>(objectMapper, state, stateType.toCanonical()),
+      return snapshotRepository.replace(new SnapshotEntity<S>(objectMapper, state, stateType.toCanonical()),
           stateType.toCanonical());
     } else {
       return Mono.just(0);
     }
   }
 
-  private StateHolder<ID, S> emptyStateHolder(ID id) {
+  private StateHolder<S> emptyStateHolder(String id) {
     return new StateHolder<>(id, emptyState(), 0L);
   }
 
-  private StateHolder<ID, S> applyEvents(StateHolder<ID, S> state, List<EventHolder<ID, E>> events) {
-    for (EventHolder<ID, E> e : events) {
+  private StateHolder<S> applyEvents(StateHolder<S> state, List<EventHolder<E>> events) {
+    for (EventHolder<E> e : events) {
       state = state.advance(applyEvent(state.state(), e.event()));
     }
     return state;
   }
 
-  private StateAndEventHolder<ID, S, E> applyCommandToState(StateHolder<ID, S> state,
+  private StateAndEventHolder<S, E> applyCommandToState(StateHolder<S> state,
       C command) {
     LOG.info("applyCommandToState " + Thread.currentThread().getName());
     // LOG.info("applyCommandToState ");
-    var events = applyCommand(state.state(), command);
-    List<EventHolder<ID, E>> eventHolders = new ArrayList<>(events.size());
+    List<E> events = applyCommand(state.state(), command);
+    List<EventHolder<E>> eventHolders = new ArrayList<>(events.size());
     Instant occured = Instant.now();
     for (E e : events) {
       state = state.advance(applyEvent(state.state(), e));
@@ -175,5 +175,5 @@ public abstract class AbstractAggregateBehaviour<ID, S, C, E> {
 
   protected abstract S emptyState();
 
-  protected abstract long getShard(ID id);
+  protected abstract long getShard(String id);
 }

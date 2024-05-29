@@ -21,13 +21,13 @@ import be.wegenenverkeer.minicqrs.parent.aggregate.TestAggregateDomain.CounterIn
 import reactor.core.publisher.Mono;
 
 @Service
-public class TestGroupedByIdProjection extends AbstractGroupedByIdWithStateProjection<UUID, BaseEvent, Integer> {
+public class TestGroupedByIdProjection extends AbstractGroupedByIdWithStateProjection<BaseEvent, Integer> {
   private TestProjectionRepository testProjectionRepository;
 
   public TestGroupedByIdProjection(ObjectMapper objectMapper, Cache<ProjectionId, Long> cache,
       ProjectionOffsetRepository projectionOffsetRepository,
       ReactiveTransactionManager tm,
-      JournalRepository<UUID, BaseEvent> journalRepository, TestProjectionRepository testProjectionRepository) {
+      JournalRepository<BaseEvent> journalRepository, TestProjectionRepository testProjectionRepository) {
     super(objectMapper, cache,
         LongStream.range(0L, TestAggregateBehaviour.NUMBER_OF_SHARDS).boxed().collect(Collectors.toSet()),
         TransactionalOperator.create(tm),
@@ -41,22 +41,22 @@ public class TestGroupedByIdProjection extends AbstractGroupedByIdWithStateProje
   }
 
   @Override
-  protected Integer getEmptyState(UUID id) {
+  protected Integer getEmptyState(String id) {
     return 0;
   }
 
   @Override
-  protected Mono<Integer> getState(UUID id) {
-    return testProjectionRepository.findById(id).map(e -> e.getCounter());
+  protected Mono<Integer> getState(String id) {
+    return testProjectionRepository.findById(UUID.fromString(id)).map(e -> e.counter());
   }
 
   @Override
-  protected Mono<Void> saveState(UUID id, Integer state) {
-    return testProjectionRepository.upsert(id, state).then();
+  protected Mono<Void> saveState(String id, Integer state) {
+    return testProjectionRepository.upsert(UUID.fromString(id), state).then();
   }
 
   @Override
-  protected Integer handleEvent(Integer state, UUID id, BaseEvent event) {
+  protected Integer handleEvent(Integer state, String id, BaseEvent event) {
     return switch (event) {
       case CounterIncremented e -> state + 1;
       default -> throw new UnsupportedOperationException("Unimplemented event " + event);

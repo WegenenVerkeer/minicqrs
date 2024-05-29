@@ -10,8 +10,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import be.wegenenverkeer.minicqrs.core.StateHolder;
 
 @Table("snapshot")
-public class SnapshotEntity<ID, S> {
-    private ID id;
+public class SnapshotEntity<S> {
+    private String id;
     private JsonNode snapshot;
     private long sequence;
     private String type;
@@ -19,22 +19,22 @@ public class SnapshotEntity<ID, S> {
     public SnapshotEntity() {
     }
 
-    public SnapshotEntity(ID id, JsonNode event, long sequence, String type) {
+    public SnapshotEntity(String id, JsonNode event, long sequence, String type) {
       this.id = id;
       this.snapshot = event;
       this.sequence = sequence;
       this.type = type;
     }
 
-    public SnapshotEntity(ObjectMapper objectMapper, StateHolder<ID, S> stateHolder, String type) {
+    public SnapshotEntity(ObjectMapper objectMapper, StateHolder<S> stateHolder, String type) {
       this(stateHolder.id(), objectMapper.valueToTree(stateHolder.state()), stateHolder.sequence(), type);
     }
 
-    public ID getId() {
+    public String getId() {
       return id;
     }
 
-    public void setId(ID id) {
+    public void setId(String id) {
       this.id = id;
     }
 
@@ -62,7 +62,7 @@ public class SnapshotEntity<ID, S> {
       this.type = type;
     }
   
-    public StateHolder<ID, S> toHolder( ObjectMapper objectMapper, JavaType eventType) throws JsonProcessingException, IllegalArgumentException {
-      return new StateHolder<ID,S>(id, objectMapper.treeToValue(snapshot, eventType), sequence);
+    public StateHolder<S> toHolder( ObjectMapper objectMapper, JavaType eventType) throws JsonProcessingException, IllegalArgumentException {
+      return new StateHolder<S>(id, objectMapper.treeToValue(snapshot, eventType), sequence);
     }
 }

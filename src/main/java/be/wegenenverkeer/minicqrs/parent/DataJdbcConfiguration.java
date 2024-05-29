@@ -8,6 +8,7 @@ import org.springframework.boot.autoconfigure.r2dbc.R2dbcProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.data.convert.ReadingConverter;
 import org.springframework.data.convert.WritingConverter;
@@ -29,12 +30,6 @@ class DataJdbcConfiguration {
 
   DataJdbcConfiguration(ObjectMapper objectMapper) {
     this.objectMapper = objectMapper;
-  }
-
-  @Bean
-  public R2dbcCustomConversions jdbcCustomConversions() {
-    return R2dbcCustomConversions.of(PostgresDialect.INSTANCE,
-        Arrays.asList(new EntityReadingConverter(), new EntityWritingConverter()));
   }
 
   @WritingConverter
@@ -63,7 +58,7 @@ class DataJdbcConfiguration {
     }
   }
 
-  @Bean(initMethod = "migrate")
+  @Bean(initMethod = "migrate", name = "flyway")
   public Flyway flyway(FlywayProperties flywayProperties, R2dbcProperties r2dbcProperties) {
     return Flyway.configure()
         .dataSource(
@@ -76,4 +71,12 @@ class DataJdbcConfiguration {
         .baselineOnMigrate(true)
         .load();
   }
+
+  @Bean
+  @DependsOn("flyway") // Make sure flyway is done before we start anybeans that use the repos.
+  public R2dbcCustomConversions jdbcCustomConversions() {
+    return R2dbcCustomConversions.of(PostgresDialect.INSTANCE,
+        Arrays.asList(new EntityReadingConverter(), new EntityWritingConverter()));
+  }
+
 }

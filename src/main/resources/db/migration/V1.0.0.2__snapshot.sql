@@ -1,5 +1,5 @@
 CREATE TABLE snapshot(
-  id UUID NOT NULL,
+  id TEXT NOT NULL,
   "snapshot" jsonb NOT NULL,
   "sequence" bigint NOT NULL,
   "type" TEXT NOT NULL,

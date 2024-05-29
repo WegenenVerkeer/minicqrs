@@ -28,7 +28,7 @@ class TestController {
 
     List<Mono<List<BaseEvent>>> monos = new ArrayList<>(count);
     for (int i = 0; i < count; i++) {
-      monos.add(aggregate.processCommand(id, new IncrementCounter()));
+      monos.add(aggregate.processCommand(id.toString(), new IncrementCounter()));
     }
     return Flux.merge(monos).collectList().map(l -> l.getLast());
   }

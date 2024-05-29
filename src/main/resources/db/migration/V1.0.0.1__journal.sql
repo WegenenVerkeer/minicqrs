@@ -1,7 +1,7 @@
 CREATE SEQUENCE journal_sequence;
 
 CREATE TABLE journal(
-  id UUID NOT NULL,
+  id TEXT NOT NULL,
   "event" jsonb NOT NULL,
   "sequence" bigint NOT NULL,
   global_sequence bigint NOT NULL DEFAULT nextval('journal_sequence'),

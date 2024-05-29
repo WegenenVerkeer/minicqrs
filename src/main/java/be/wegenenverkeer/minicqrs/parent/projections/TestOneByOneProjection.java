@@ -7,7 +7,6 @@ import java.util.stream.LongStream;
 import org.ehcache.Cache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.ReactiveTransactionManager;
 import org.springframework.transaction.reactive.TransactionalOperator;
 
@@ -23,7 +22,7 @@ import be.wegenenverkeer.minicqrs.parent.aggregate.TestAggregateDomain.CounterIn
 import reactor.core.publisher.Mono;
 
 //@Service
-public class TestOneByOneProjection extends AbstractOneByOneProjection<UUID, BaseEvent> {
+public class TestOneByOneProjection extends AbstractOneByOneProjection<BaseEvent> {
   private static Logger LOG = LoggerFactory.getLogger(TestOneByOneProjection.class);
 
   private TestProjectionRepository testProjectionRepository;
@@ -31,7 +30,7 @@ public class TestOneByOneProjection extends AbstractOneByOneProjection<UUID, Bas
   public TestOneByOneProjection(ObjectMapper objectMapper, Cache<ProjectionId, Long> cache,
       ProjectionOffsetRepository projectionOffsetRepository,
       ReactiveTransactionManager tm,
-      JournalRepository<UUID, BaseEvent> journalRepository, TestProjectionRepository testProjectionRepository) {
+      JournalRepository<BaseEvent> journalRepository, TestProjectionRepository testProjectionRepository) {
     super(objectMapper, cache,
         LongStream.range(0L, TestAggregateBehaviour.NUMBER_OF_SHARDS).boxed().collect(Collectors.toSet()),
         TransactionalOperator.create(tm),
@@ -46,7 +45,7 @@ public class TestOneByOneProjection extends AbstractOneByOneProjection<UUID, Bas
 
   private Mono<Void> increment(UUID id, CounterIncremented event) {
     LOG.info("increment on " + id + " -> " + event);
-    return testProjectionRepository.findById(id).map(e -> e.getCounter()).defaultIfEmpty(0)
+    return testProjectionRepository.findById(id).map(e -> e.counter()).defaultIfEmpty(0)
         .flatMap(c -> {
           LOG.info("Got counter " + c + " for " + id);
           return testProjectionRepository.upsert(id, c + 1).then();
@@ -54,9 +53,9 @@ public class TestOneByOneProjection extends AbstractOneByOneProjection<UUID, Bas
   }
 
   @Override
-  protected Mono<Void> handleEvent(UUID id, BaseEvent event) {
+  protected Mono<Void> handleEvent(String id, BaseEvent event) {
     return switch (event) {
-      case CounterIncremented e -> increment(id, e);
+      case CounterIncremented e -> increment(UUID.fromString(id), e);
       default -> throw new UnsupportedOperationException("Unimplemented event " + event);
     };
   }

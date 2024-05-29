@@ -12,8 +12,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import be.wegenenverkeer.minicqrs.core.EventHolder;
 
 @Table("journal")
-public class JournalEntity<ID, E> {
-  private ID id;
+public class JournalEntity<E> {
+  private String id;
   private JsonNode event;
   private long sequence;
   private long shard;
@@ -24,7 +24,7 @@ public class JournalEntity<ID, E> {
   public JournalEntity() {
   }
 
-  private JournalEntity(ID id, JsonNode event, long sequence, String type, Instant occured, long shard) {
+  private JournalEntity(String id, JsonNode event, long sequence, String type, Instant occured, long shard) {
     this.id = id;
     this.event = event;
     this.sequence = sequence;
@@ -33,16 +33,16 @@ public class JournalEntity<ID, E> {
     this.shard = shard;
   }
 
-  public JournalEntity(ObjectMapper objectMapper, EventHolder<ID, E> eventHolder, String type, long shard) {
+  public JournalEntity(ObjectMapper objectMapper, EventHolder<E> eventHolder, String type, long shard) {
     this(eventHolder.id(), objectMapper.valueToTree(eventHolder.event()), eventHolder.sequence(), type,
         eventHolder.occured(), shard);
   }
 
-  public ID getId() {
+  public String getId() {
     return id;
   }
 
-  public void setId(ID id) {
+  public void setId(String id) {
     this.id = id;
   }
 
@@ -95,8 +95,8 @@ public class JournalEntity<ID, E> {
     this.shard = shard;
   }
 
-  public EventHolder<ID, E> toHolder(ObjectMapper objectMapper, JavaType eventType)
+  public EventHolder<E> toHolder(ObjectMapper objectMapper, JavaType eventType)
       throws JsonProcessingException, IllegalArgumentException {
-    return new EventHolder<ID, E>(id, objectMapper.treeToValue(event, eventType), sequence, occured);
+    return new EventHolder<E>(id, objectMapper.treeToValue(event, eventType), sequence, occured);
   }
 }

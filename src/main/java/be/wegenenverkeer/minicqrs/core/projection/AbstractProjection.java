@@ -27,11 +27,11 @@ import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
-public abstract class AbstractProjection<ID, E> {
+public abstract class AbstractProjection<E> {
   private static Logger LOG = LoggerFactory.getLogger(AbstractProjection.class);
 
   private ProjectionOffsetRepository projectionOffsetRepository;
-  private JournalRepository<ID, E> journalRepository;
+  private JournalRepository<E> journalRepository;
 
   private Cache<ProjectionId, Long> cache;
   private Set<Long> shards;
@@ -43,7 +43,7 @@ public abstract class AbstractProjection<ID, E> {
   public AbstractProjection(ObjectMapper objectMapper, Cache<ProjectionId, Long> cache,
       Set<Long> shards, TransactionalOperator rxtx,
       ProjectionOffsetRepository projectionOffsetRepository,
-      JournalRepository<ID, E> journalRepository, Class<E> eventClass) {
+      JournalRepository<E> journalRepository, Class<E> eventClass) {
     this.projectionOffsetRepository = projectionOffsetRepository;
     this.journalRepository = journalRepository;
     this.rxtx = rxtx;
@@ -69,7 +69,7 @@ public abstract class AbstractProjection<ID, E> {
             .flatMap(events -> rxtx.execute(txStatus -> handleAndSave(events)).singleOrEmpty()), 1);
   }
 
-  private Mono<Void> handleAndSave(List<JournalEntity<ID, E>> events) {
+  private Mono<Void> handleAndSave(List<JournalEntity<E>> events) {
     return applyEvents(events)
         // 5: save offset in repo
         .flatMap(offsets -> saveOffsetsInRepo(offsets)
@@ -123,7 +123,7 @@ public abstract class AbstractProjection<ID, E> {
         .collectList().then();
   }
 
-  private Mono<List<JournalEntity<ID, E>>> getEventsSince(Map<Long, Optional<Long>> offsets) {
+  private Mono<List<JournalEntity<E>>> getEventsSince(Map<Long, Optional<Long>> offsets) {
     return Flux.mergeSequential(offsets.entrySet().stream().map(e -> {
       long shard = e.getKey();
       long since = e.getValue().orElse(0L);
@@ -136,8 +136,8 @@ public abstract class AbstractProjection<ID, E> {
         .collect(Collectors.toList()));
   }
 
-  private Mono<Map<Long, Long>> applyEvents(List<JournalEntity<ID, E>> events) {
-    List<EventHolder<ID, E>> eventsToHandle = events.stream()
+  private Mono<Map<Long, Long>> applyEvents(List<JournalEntity<E>> events) {
+    List<EventHolder<E>> eventsToHandle = events.stream()
         .map(ThrowingFunction.of(entity -> entity.toHolder(objectMapper, eventType))).toList();
     Map<Long, Long> offsets = events.stream()
         .collect(Collectors.groupingBy(e -> e.getShard(),
@@ -149,7 +149,7 @@ public abstract class AbstractProjection<ID, E> {
   }
 
   // Can be overloaded to handle multiple events in one time.
-  protected abstract Mono<Void> handleEvents(List<EventHolder<ID, E>> events);
+  protected abstract Mono<Void> handleEvents(List<EventHolder<E>> events);
 
   public abstract String getProjectionName();
 }

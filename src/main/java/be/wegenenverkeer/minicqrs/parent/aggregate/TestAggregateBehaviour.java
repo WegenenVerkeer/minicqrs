@@ -20,13 +20,13 @@ import be.wegenenverkeer.minicqrs.parent.aggregate.TestAggregateDomain.State;
 
 @Service
 public class TestAggregateBehaviour extends
-    AbstractAggregateBehaviour<UUID, State, BaseCommand, BaseEvent> {
+    AbstractAggregateBehaviour<State, BaseCommand, BaseEvent> {
   public static int NUMBER_OF_SHARDS = 10;
 
   public TestAggregateBehaviour(ObjectMapper objectMapper,
       ProjectionManager projectionManager,
-      JournalRepository<UUID, BaseEvent> journalRepository,
-      SnapshotRepository<UUID, State> snapshotRepository,
+      JournalRepository<BaseEvent> journalRepository,
+      SnapshotRepository<State> snapshotRepository,
       CacheManager cacheManager) {
     super(
         objectMapper,
@@ -35,7 +35,6 @@ public class TestAggregateBehaviour extends
         journalRepository,
         snapshotRepository,
         BaseEvent.class,
-        UUID.class,
         State.class);
   }
 
@@ -61,9 +60,9 @@ public class TestAggregateBehaviour extends
   }
 
   @Override
-  protected long getShard(UUID id) {
+  protected long getShard(String id) {
     // 10 shards for this aggregate
-    long shard = Math.abs(id.getLeastSignificantBits()) % NUMBER_OF_SHARDS;
+    long shard = Math.abs(id.hashCode()) % NUMBER_OF_SHARDS;
     return shard;
   }
 
