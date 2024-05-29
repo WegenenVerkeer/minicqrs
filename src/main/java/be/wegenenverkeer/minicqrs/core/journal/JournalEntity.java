@@ -12,87 +12,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import be.wegenenverkeer.minicqrs.core.EventHolder;
 
 @Table("journal")
-public class JournalEntity<E> {
-  private String id;
-  private JsonNode event;
-  private long sequence;
-  private long shard;
-  private Long globalSequence;
-  private Instant occured;
-  private String type;
-
-  public JournalEntity() {
-  }
-
-  private JournalEntity(String id, JsonNode event, long sequence, String type, Instant occured, long shard) {
-    this.id = id;
-    this.event = event;
-    this.sequence = sequence;
-    this.type = type;
-    this.occured = occured;
-    this.shard = shard;
-  }
+public record JournalEntity<E>(
+    String id,
+    JsonNode event,
+    long sequence,
+    String type,
+    Instant occured,
+    long shard,
+    Long globalSequence) {
 
   public JournalEntity(ObjectMapper objectMapper, EventHolder<E> eventHolder, String type, long shard) {
     this(eventHolder.id(), objectMapper.valueToTree(eventHolder.event()), eventHolder.sequence(), type,
-        eventHolder.occured(), shard);
-  }
-
-  public String getId() {
-    return id;
-  }
-
-  public void setId(String id) {
-    this.id = id;
-  }
-
-  public JsonNode getEvent() {
-    return event;
-  }
-
-  public void setEvent(JsonNode event) {
-    this.event = event;
-  }
-
-  public long getSequence() {
-    return sequence;
-  }
-
-  public void setSequence(long sequence) {
-    this.sequence = sequence;
-  }
-
-
-  public Long getGlobalSequence() {
-    return globalSequence;
-  }
-
-  public void setGlobalSequence(Long globalSequence) {
-    this.globalSequence = globalSequence;
-  }
-
-  public String getType() {
-    return type;
-  }
-
-  public void setType(String type) {
-    this.type = type;
-  }
-
-  public Instant getOccured() {
-    return occured;
-  }
-
-  public void setOccured(Instant occured) {
-    this.occured = occured;
-  }
-
-  public long getShard() {
-    return shard;
-  }
-
-  public void setShard(long shard) {
-    this.shard = shard;
+        eventHolder.occured(), shard, null);
   }
 
   public EventHolder<E> toHolder(ObjectMapper objectMapper, JavaType eventType)

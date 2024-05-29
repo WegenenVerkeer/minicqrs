@@ -85,8 +85,8 @@ public abstract class AbstractProjection<ID,E> {
     return Mono.fromCallable(() -> shards.stream()
         .map(shard -> new ProjectionOffsetEntity(getProjectionName(), shard,
             cache.get(new ProjectionId(getProjectionName(), shard))))
-        .collect(Collectors.toMap(e -> e.getShard(),
-            e -> Optional.ofNullable(e.getSequence()))));
+        .collect(Collectors.toMap(ProjectionOffsetEntity::shard,
+            e -> Optional.ofNullable(e.sequence()))));
   }
 
   private Mono<Void> saveOffsetsInMemory(Map<Long, Long> offsets) {
@@ -109,7 +109,7 @@ public abstract class AbstractProjection<ID,E> {
     return projectionOffsetRepository.findByProjectionAndShardIn(getProjectionName(), shardsToGet)
         .collectList()
         .map(r -> {
-          r.forEach(e -> maybeMemoryOffsets.put(e.getShard(), Optional.ofNullable(e.getSequence())));
+          r.forEach(e -> maybeMemoryOffsets.put(e.shard(), Optional.ofNullable(e.sequence())));
           LOG.info("getOffsetsFromRepo = " + maybeMemoryOffsets.size());
           return maybeMemoryOffsets;
         });
@@ -140,10 +140,10 @@ public abstract class AbstractProjection<ID,E> {
     List<EventHolder<E>> eventsToHandle = events.stream()
         .map(ThrowingFunction.of(entity -> entity.toHolder(objectMapper, eventType))).toList();
     Map<Long, Long> offsets = events.stream()
-        .collect(Collectors.groupingBy(e -> e.getShard(),
-            Collectors.maxBy(Comparator.comparingLong(JournalEntity::getGlobalSequence))))
+        .collect(Collectors.groupingBy(JournalEntity::shard,
+            Collectors.maxBy(Comparator.comparingLong(JournalEntity::globalSequence))))
         .entrySet().stream()
-        .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().get().getGlobalSequence()));
+        .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().get().globalSequence()));
     LOG.info("applyEvents " + events.size() + " offsets = " + offsets.size());
     return handleEvents(eventsToHandle).then(Mono.just(offsets));
   }

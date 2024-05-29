@@ -14,6 +14,6 @@ public interface SnapshotRepository<S> extends R2dbcRepository<SnapshotEntity<S>
 
   @Transactional
   default Mono<Integer> replace(SnapshotEntity<S> entity, String type) {
-    return deleteByIdAndType(entity.getId(), type).flatMap(e -> save(entity)).map(e -> 1);
+    return deleteByIdAndType(entity.id(), type).flatMap(e -> save(entity)).map(e -> 1);
   }
 }
