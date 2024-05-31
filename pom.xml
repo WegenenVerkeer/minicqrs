@@ -6,23 +6,27 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.2.6</version>
+		<version>3.3.0</version>
 		<relativePath /> <!-- lookup parent from repository -->
 	</parent>
+	
 	<groupId>be.wegenenverkeer.minicqrs</groupId>
 	<artifactId>parent</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<name>parent</name>
-	<description>Demo project for Spring Boot</description>
+	<description>MiniCQRS</description>
+	
 	<properties>
 		<java.version>21</java.version>
 		<jooq.version>3.19.8</jooq.version>
 	</properties>
+	
 	<modules>
 		<module>core</module>
 		<module>demoapp</module>
 	</modules>
+
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
@@ -32,4 +36,15 @@
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
+
+	<distributionManagement>
+		<repository>
+			<id>awv-releases</id>
+			<url>https://collab.mow.vlaanderen.be/artifacts/repository/maven-releases</url>
+		</repository>
+		<snapshotRepository>
+			<id>awv-snapshots</id>
+			<url>https://collab.mow.vlaanderen.be/artifacts/repository/maven-snapshots</url>
+		</snapshotRepository>
+	</distributionManagement>
 </project>

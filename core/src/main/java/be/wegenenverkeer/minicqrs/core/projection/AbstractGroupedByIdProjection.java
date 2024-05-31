@@ -11,6 +11,9 @@ import be.wegenenverkeer.minicqrs.core.JournalRepository.EventHolder;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+/** 
+ * Projection where events are grouped by id, and then handled all together in one transaction.
+ */
 public abstract class AbstractGroupedByIdProjection<ID,E> extends AbstractProjection<ID,E> {
   public AbstractGroupedByIdProjection(Cache<ProjectionId, Long> cache, Set<Long> shards, Class<E> eventClass) {
     super(cache, shards, eventClass);

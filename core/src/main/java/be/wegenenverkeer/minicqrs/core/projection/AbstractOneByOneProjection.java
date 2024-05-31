@@ -9,6 +9,9 @@ import be.wegenenverkeer.minicqrs.core.JournalRepository.EventHolder;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+/**
+ * Projection where every event is handled on it's own.
+ */
 public abstract class AbstractOneByOneProjection<ID,E> extends AbstractProjection<ID,E> {
   public AbstractOneByOneProjection(Cache<ProjectionId, Long> cache,Set<Long> shards, Class<E> eventClass) {
     super(cache, shards, eventClass);

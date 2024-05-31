@@ -8,15 +8,18 @@
 		<artifactId>parent</artifactId>
 		<version>0.0.1-SNAPSHOT</version>
 	</parent>
+
 	<groupId>be.wegenenverkeer.minicqrs</groupId>
 	<artifactId>core</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>Core</name>
-	<description>Mini cqrs core</description>
+	<description>MiniCQRS core</description>
+	
 	<properties>
 		<java.version>21</java.version>
 		<jooq.version>3.19.8</jooq.version>
 	</properties>
+	
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
