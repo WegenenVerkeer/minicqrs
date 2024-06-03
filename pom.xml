@@ -24,7 +24,7 @@
 	
 	<modules>
 		<module>core</module>
-		<module>demoapp</module>
+		<!-- <module>demoapp</module> -->
 	</modules>
 
 	<dependencyManagement>
