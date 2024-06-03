@@ -27,7 +27,7 @@ Package and Publish:
         scripts:
           - |-
             set -e
-            export VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout')
+            export VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
 
             echo "Package en publish ... $VERSION"
             echo "JAVA_HOME = $JAVA_HOME"
