@@ -1,0 +1,81 @@
+# zie ook
+#   - doc van geel: https://gitlab.collab.mow.vlaanderen.be/gitlab/DevOps/docs/-/blob/trunk/design/cicd.adoc
+#   - reference:    https://docs.atlassian.com/bamboo-specs-docs/9.2.1/specs.html?yaml
+---
+version: 2
+plan:
+  project-key: MINICQRS
+  key: CORE
+  name: Rood MiniCQRS framework
+stages:
+  - Package and Publish Stage:
+      manual: false
+      final: false
+      jobs:
+        - Package and Publish
+Package and Publish:
+  key: PPH
+  other:
+    clean-working-dir: true
+  tasks:
+    - checkout:
+        description: 'default repo'
+        force-clean-build: true
+    - script:
+        description: 'package, publish, helm publish'
+        interpreter: SHELL
+        scripts:
+          - |-
+            set -e
+            export VERSIONPREFIX=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout | sed -e 's/\.[0-9]\+-SNAPSHOT//g')
+            export TIMESTAMP=$(date -d "$bamboo_buildTimeStamp" +%Y%m%d%H%M%S)
+            export VERSION="$VERSIONPREFIX.$TIMESTAMP"
+
+            echo "Package en publish ... $VERSION"
+            echo "JAVA_HOME = $JAVA_HOME"
+            mvn versions:set -DnewVersion=${VERSION}
+            mvn -U clean publish -DskipTests
+
+            echo "create bamboo.properties"
+            echo "version=${VERSION}" >> bamboo.properties
+            cat bamboo.properties
+    - inject-variables:
+        file: bamboo.properties
+        scope: RESULT
+        namespace: inject
+  requirements:
+    - system.jdk.JDK 21
+    - Team_rood: 'true'
+triggers:
+  - polling:
+      period: 180
+      repositories:
+        - minicqrs
+  - cron:
+      expression: 0 0 0 ? * 7
+branches:
+  create: manually
+  delete:
+    after-deleted-days: 3
+    after-inactive-days: 3
+  link-to-jira: true
+labels:
+  - rood
+---
+version: 2
+plan:
+  key: MINICQRS-CORE
+plan-permissions:
+  - roles:
+      - logged-in
+    permissions:
+      - view
+  - groups:
+      - rood-dev
+    permissions:
+      - view
+      - view-configuration
+      - edit
+      - build
+      - clone
+      - admin
