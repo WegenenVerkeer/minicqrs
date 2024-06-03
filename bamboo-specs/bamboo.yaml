@@ -27,13 +27,10 @@ Package and Publish:
         scripts:
           - |-
             set -e
-            export VERSIONPREFIX=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout | sed -e 's/\.[0-9]\+-SNAPSHOT//g')
-            export TIMESTAMP=$(date -d "$bamboo_buildTimeStamp" +%Y%m%d%H%M%S)
-            export VERSION="$VERSIONPREFIX.$TIMESTAMP"
+            export VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout')
 
             echo "Package en publish ... $VERSION"
             echo "JAVA_HOME = $JAVA_HOME"
-            mvn versions:set -DnewVersion=${VERSION}
             mvn -U clean deploy -DskipTests
 
             echo "create bamboo.properties"
