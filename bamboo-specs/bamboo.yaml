@@ -34,7 +34,7 @@ Package and Publish:
             echo "Package en publish ... $VERSION"
             echo "JAVA_HOME = $JAVA_HOME"
             mvn versions:set -DnewVersion=${VERSION}
-            mvn -U clean publish -DskipTests
+            mvn -U clean deploy -DskipTests
 
             echo "create bamboo.properties"
             echo "version=${VERSION}" >> bamboo.properties
