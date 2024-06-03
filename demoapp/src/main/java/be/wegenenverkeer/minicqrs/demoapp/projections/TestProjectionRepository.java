@@ -1,6 +1,6 @@
 package be.wegenenverkeer.minicqrs.demoapp.projections;
 
-import static be.wegenenverkeer.minicqrs.demoapp.db.Public.PUBLIC;
+import static be.wegenenverkeer.minicqrs.demoapp.db.Tables.TEST_PROJECTION;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -21,9 +21,9 @@ public class TestProjectionRepository {
 
   public Mono<Optional<Long>> findById(UUID id) {
     return Mono.from(ctx
-        .select(PUBLIC.TEST_PROJECTION.COUNTER)
-        .from(PUBLIC.TEST_PROJECTION)
-        .where(PUBLIC.TEST_PROJECTION.ID.eq(id))
+        .select(TEST_PROJECTION.COUNTER)
+        .from(TEST_PROJECTION)
+        .where(TEST_PROJECTION.ID.eq(id))
         .limit(1))
         .map(Record1::value1)
         .map(Optional::of).defaultIfEmpty(Optional.empty());
@@ -31,10 +31,11 @@ public class TestProjectionRepository {
 
   public Mono<Integer> upsert(UUID id, long counter) {
     return Mono.from(ctx
-        .insertInto(PUBLIC.TEST_PROJECTION, PUBLIC.TEST_PROJECTION.ID, PUBLIC.TEST_PROJECTION.COUNTER)
+        .insertInto(TEST_PROJECTION)
+        .columns(TEST_PROJECTION.ID, TEST_PROJECTION.COUNTER)
         .values(id, counter)
         .onDuplicateKeyUpdate()
-        .set(PUBLIC.TEST_PROJECTION.COUNTER, counter));
+        .set(TEST_PROJECTION.COUNTER, counter));
   }
 
 }

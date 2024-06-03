@@ -8,12 +8,11 @@ import com.fasterxml.jackson.databind.type.TypeFactory;
 import be.wegenenverkeer.minicqrs.core.db.tables.records.SnapshotRecord;
 import reactor.core.publisher.Mono;
 
-import static be.wegenenverkeer.minicqrs.core.db.Public.PUBLIC;
+import static be.wegenenverkeer.minicqrs.core.db.Tables.SNAPSHOT;
 import static org.jooq.JSONB.jsonb;
 import static org.jooq.impl.DSL.and;
 
 import java.util.Optional;
-
 import org.jooq.DSLContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,10 +58,10 @@ public class SnapshotRepository<S> {
   public Mono<Optional<StateHolder<S>>> getLatestSnapshot(String id, JavaType stateType) {
     LOG.info("getLatestSnapshot");
     return Mono.from(ctx
-        .selectFrom(PUBLIC.SNAPSHOT)
+        .selectFrom(SNAPSHOT)
         .where(and(
-            PUBLIC.SNAPSHOT.ID.eq(id),
-            PUBLIC.SNAPSHOT.TYPE.eq(stateType
+            SNAPSHOT.ID.eq(id),
+            SNAPSHOT.TYPE.eq(stateType
                 .toCanonical())))
         .limit(1))
         .map(record -> fromDb(record))
@@ -71,8 +70,8 @@ public class SnapshotRepository<S> {
 
   public Mono<Integer> saveSnapshot(StateHolder<S> state) {
     var record = toDb(state);
-    return Mono.from(ctx.insertInto(PUBLIC.SNAPSHOT)
-        .columns(PUBLIC.SNAPSHOT.fields())
+    return Mono.from(ctx.insertInto(SNAPSHOT)
+        .columns(SNAPSHOT.fields())
         .valuesOfRecords(record)
         .onDuplicateKeyUpdate()
         .set(record));

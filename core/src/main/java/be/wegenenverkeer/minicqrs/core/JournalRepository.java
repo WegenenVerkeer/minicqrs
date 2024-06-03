@@ -9,7 +9,7 @@ import be.wegenenverkeer.minicqrs.core.db.tables.records.JournalRecord;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import static be.wegenenverkeer.minicqrs.core.db.Public.PUBLIC;
+import static be.wegenenverkeer.minicqrs.core.db.Tables.JOURNAL;
 import static org.jooq.JSONB.jsonb;
 import static org.jooq.impl.DSL.and;
 
@@ -36,19 +36,19 @@ public class JournalRepository<E> {
     this.objectMapper = objectMapper;
   }
 
-  public static Field<?>[] columns = { PUBLIC.JOURNAL.ID, PUBLIC.JOURNAL.EVENT, PUBLIC.JOURNAL.TYPE,
-      PUBLIC.JOURNAL.SHARD, PUBLIC.JOURNAL.OCCURED, PUBLIC.JOURNAL.SEQUENCE };
+  public static Field<?>[] columns = { JOURNAL.ID, JOURNAL.EVENT, JOURNAL.TYPE,
+      JOURNAL.SHARD, JOURNAL.OCCURED, JOURNAL.SEQUENCE };
 
   // We don't want to save the globalSequence, it will be computed by the database
   private org.jooq.Record toDb(EventHolder<E> eventHolder) {
     try {
       org.jooq.Record record = ctx.newRecord(columns);
-      record.set(PUBLIC.JOURNAL.ID, eventHolder.id());
-      record.set(PUBLIC.JOURNAL.EVENT, jsonb(objectMapper.writeValueAsString(eventHolder.event())));
-      record.set(PUBLIC.JOURNAL.TYPE, eventHolder.type().toCanonical());
-      record.set(PUBLIC.JOURNAL.SHARD, eventHolder.shard());
-      record.set(PUBLIC.JOURNAL.OCCURED, eventHolder.occured());
-      record.set(PUBLIC.JOURNAL.SEQUENCE, eventHolder.sequence());
+      record.set(JOURNAL.ID, eventHolder.id());
+      record.set(JOURNAL.EVENT, jsonb(objectMapper.writeValueAsString(eventHolder.event())));
+      record.set(JOURNAL.TYPE, eventHolder.type().toCanonical());
+      record.set(JOURNAL.SHARD, eventHolder.shard());
+      record.set(JOURNAL.OCCURED, eventHolder.occured());
+      record.set(JOURNAL.SEQUENCE, eventHolder.sequence());
       return record;
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Could not convert EventHolder to JournalRecord", e);
@@ -69,18 +69,18 @@ public class JournalRepository<E> {
   public Mono<List<EventHolder<E>>> getEventsSince(String id, long since, JavaType eventType) {
     LOG.info("getEventsSince on " + id + " since " + since);
     return Flux.from(ctx
-        .selectFrom(PUBLIC.JOURNAL)
+        .selectFrom(JOURNAL)
         .where(and(
-            PUBLIC.JOURNAL.ID.eq(id),
-            PUBLIC.JOURNAL.TYPE.eq(eventType.toCanonical()),
-            PUBLIC.JOURNAL.SEQUENCE.gt(since)))
-        .orderBy(PUBLIC.JOURNAL.SEQUENCE))
+            JOURNAL.ID.eq(id),
+            JOURNAL.TYPE.eq(eventType.toCanonical()),
+            JOURNAL.SEQUENCE.gt(since)))
+        .orderBy(JOURNAL.SEQUENCE))
         .map(entity -> fromDb(entity)).collectList();
   }
 
   public Mono<Integer> saveEvents(List<EventHolder<E>> events) {
     var records = events.stream().map(event -> toDb(event)).toList();
-    var inserts = ctx.insertInto(PUBLIC.JOURNAL)
+    var inserts = ctx.insertInto(JOURNAL)
         .columns(JournalRepository.columns)
         .valuesOfRecords(records);
     return Flux.from(inserts).collectList().map(r -> r.size());
@@ -88,12 +88,12 @@ public class JournalRepository<E> {
 
   public Flux<EventHolder<E>> getEventsOnShardSince(long shard, long since, int maxEvents, JavaType eventType) {
     return Flux.from(ctx
-        .selectFrom(PUBLIC.JOURNAL)
+        .selectFrom(JOURNAL)
         .where(and(
-            PUBLIC.JOURNAL.SHARD.eq(shard),
-            PUBLIC.JOURNAL.TYPE.eq(eventType.toCanonical()),
-            PUBLIC.JOURNAL.GLOBAL_SEQUENCE.gt(since)))
-        .orderBy(PUBLIC.JOURNAL.GLOBAL_SEQUENCE)
+            JOURNAL.SHARD.eq(shard),
+            JOURNAL.TYPE.eq(eventType.toCanonical()),
+            JOURNAL.GLOBAL_SEQUENCE.gt(since)))
+        .orderBy(JOURNAL.GLOBAL_SEQUENCE)
         .limit(maxEvents))
         .map(entity -> fromDb(entity));
   }

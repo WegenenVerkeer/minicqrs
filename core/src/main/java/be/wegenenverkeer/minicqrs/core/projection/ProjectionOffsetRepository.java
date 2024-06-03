@@ -4,7 +4,7 @@ import be.wegenenverkeer.minicqrs.core.db.tables.records.ProjectionOffsetRecord;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import static be.wegenenverkeer.minicqrs.core.db.Public.PUBLIC;
+import static be.wegenenverkeer.minicqrs.core.db.Tables.PROJECTION_OFFSET;
 import static org.jooq.impl.DSL.and;
 
 import java.util.Set;
@@ -25,10 +25,10 @@ public class ProjectionOffsetRepository {
 
   public Flux<Offset> getOffsets(String projectionName, Set<Long> shards) {
     return Flux.from(ctx
-        .selectFrom(PUBLIC.PROJECTION_OFFSET)
+        .selectFrom(PROJECTION_OFFSET)
         .where(and(
-            PUBLIC.PROJECTION_OFFSET.PROJECTION.eq(projectionName),
-            PUBLIC.PROJECTION_OFFSET.SHARD.in(shards))))
+            PROJECTION_OFFSET.PROJECTION.eq(projectionName),
+            PROJECTION_OFFSET.SHARD.in(shards))))
         .map(r -> new Offset(r.getShard(), r.getSequence()));
 
   }
@@ -37,12 +37,12 @@ public class ProjectionOffsetRepository {
     ProjectionOffsetRecord record = new ProjectionOffsetRecord(projection, shard, sequence);
 
     return Mono.from(ctx
-        .insertInto(PUBLIC.PROJECTION_OFFSET)
+        .insertInto(PROJECTION_OFFSET)
         .columns(record.fields())
         .valuesOfRecords(record)
         .onDuplicateKeyUpdate()
         .set(record)
-        .where(PUBLIC.PROJECTION_OFFSET.SEQUENCE.lt(sequence)));
+        .where(PROJECTION_OFFSET.SEQUENCE.lt(sequence)));
   }
 
 }
