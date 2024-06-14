@@ -64,9 +64,8 @@ public abstract class AbstractProjection<ID, E> {
     return trigger.asFlux()
         .sampleTimeout(u -> Mono.empty().delaySubscription(Duration.ofMillis(200))) // debounce 200ms
         .publishOn(scheduler)
-        // 1: get current offset from memory
-        .flatMap(_ignore -> getOffsetsFromMemory()
-            .flatMap(maybeMemoryOffsets -> getOffsetsFromRepo(maybeMemoryOffsets))
+        // 1: get current offset from memory or repo
+        .flatMap(_ignore -> getOffsets()
             // 3: get events from journal with globalSequence > last sequence
             .flatMap(offsets -> getEventsSince(offsets))
             // 4: handle events
@@ -83,6 +82,11 @@ public abstract class AbstractProjection<ID, E> {
 
   public void triggerProjection() {
     this.trigger.tryEmitNext(0L);
+  }
+
+  // Get the global offset for all shards of this projection
+  public Mono<Map<Long, Optional<Long>>> getOffsets() {
+    return getOffsetsFromMemory().flatMap(maybeMemoryOffsets -> getOffsetsFromRepo(maybeMemoryOffsets));
   }
 
   private Mono<Map<Long, Optional<Long>>> getOffsetsFromMemory() {

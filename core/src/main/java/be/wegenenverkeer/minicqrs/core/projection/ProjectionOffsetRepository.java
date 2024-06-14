@@ -6,6 +6,7 @@ import reactor.core.publisher.Mono;
 
 import static be.wegenenverkeer.minicqrs.core.db.Tables.PROJECTION_OFFSET;
 import static org.jooq.impl.DSL.and;
+import static org.jooq.impl.DSL.exists;
 
 import java.util.Set;
 
@@ -32,7 +33,18 @@ public class ProjectionOffsetRepository {
         .map(r -> new Offset(r.getShard(), r.getSequence()));
 
   }
-  
+
+  public Mono<Boolean> hasOffset(String projectionName, Long shard, Long sequence) {
+    return Mono.from(ctx
+        .select(exists(ctx.selectFrom(PROJECTION_OFFSET)
+            .where(and(
+                PROJECTION_OFFSET.PROJECTION.eq(projectionName),
+                PROJECTION_OFFSET.SHARD.eq(shard),
+                PROJECTION_OFFSET.SEQUENCE.ge(sequence))))))
+        .map(r -> r.value1());
+
+  }
+
   public Mono<Integer> upsertOffset(String projection, long shard, long sequence) {
     ProjectionOffsetRecord record = new ProjectionOffsetRecord(projection, shard, sequence);
 

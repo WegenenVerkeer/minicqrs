@@ -14,12 +14,15 @@ import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.comparator.Comparators;
+
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 
 import be.wegenenverkeer.minicqrs.core.JournalRepository.EventHolder;
 import be.wegenenverkeer.minicqrs.core.SnapshotRepository.StateHolder;
 import be.wegenenverkeer.minicqrs.core.projection.ProjectionManager;
+import be.wegenenverkeer.minicqrs.core.projection.ProjectionOffset;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 import reactor.util.retry.RetryBackoffSpec;
@@ -32,7 +35,7 @@ public abstract class AbstractAggregateBehaviour<ID, S, C, E> {
   private ProjectionManager projectionManager;
   private final JavaType eventType;
   private final JavaType stateType;
-  
+
   @Autowired
   private JournalRepository<E> journalRepository;
 
@@ -52,9 +55,13 @@ public abstract class AbstractAggregateBehaviour<ID, S, C, E> {
   }
 
   private static record StateAndEventHolder<S, E>(StateHolder<S> state, List<EventHolder<E>> events) {
+    public StateAndEventHolder<S, E> withEvents(List<EventHolder<E>> events) {
+      return new StateAndEventHolder<>(state, events);
+    }
   }
 
-  public Mono<List<E>> processCommand(ID id, C command) {
+  // Process command and return the events with their info.
+  public Mono<List<EventHolder<E>>> processCommandGetEventHolders(ID id, C command) {
     LOG.info("processCommand");
     String internalId = fromId(id);
     // 1: get state + sequence from in-memory or snapshot
@@ -63,24 +70,38 @@ public abstract class AbstractAggregateBehaviour<ID, S, C, E> {
             // 2: if not exists, get state + sequence from snapshots
             .orElseGet(() -> snapshotRepository.getLatestSnapshot(internalId, stateType)))
         // 3: get events from journal with sequence > last sequence
-        .flatMap(maybeState -> journalRepository.getEventsSince(internalId, maybeState.map(state -> state.sequence()).orElse(0L), eventType)
+        .flatMap(maybeState -> journalRepository
+            .getEventsSince(internalId, maybeState.map(state -> state.sequence()).orElse(0L), eventType)
             // 4: apply events tot state
             .map(events -> applyEvents(id, maybeState.orElse(emptyStateHolder(internalId)), events))
             // 5: produce events from command and state
             .map(state -> applyCommandToState(id, state, command)))
         // 6: save events in journal
-        .flatMap(stateAndEvents -> journalRepository.saveEvents(stateAndEvents.events()).map(_ignore -> stateAndEvents))
+        .flatMap(stateAndEvents -> journalRepository.saveEvents(stateAndEvents.events())
+            .map(events -> stateAndEvents.withEvents(events)))
         // 7: if needed, save snapshot
         .flatMap(stateAndEvents -> saveSnapshot(stateAndEvents.state()).map(_ignore -> stateAndEvents))
         // 8: save state + sequence in memory
         .map(stateAndEvents -> {
           saveStateInMemory(stateAndEvents.state());
           projectionManager.triggerProjections();
-          return stateAndEvents.events().stream().map(e -> e.event()).collect(Collectors.toList());
+          return stateAndEvents.events();
         })
         // 9: retry when we get a duplicatekey exception
         .retryWhen(
             getRetryBackoffSpec().filter(t -> t instanceof org.jooq.exception.IntegrityConstraintViolationException));
+  }
+
+  // Process command and return the events
+  public Mono<List<E>> processCommand(ID id, C command) {
+    return processCommandGetEventHolders(id, command)
+        .map(events -> events.stream().map(e -> e.event()).collect(Collectors.toList()));
+  }
+
+  // Process command and return the highest offset.
+  public Mono<ProjectionOffset> processCommandGetOffset(ID id, C command) {
+    return processCommandGetEventHolders(id, command).flatMap(events -> events.stream().map(e -> e.globalSequence())
+        .max(Comparators.comparable()).map(v -> Mono.just(new ProjectionOffset(getShard(id), v))).orElse(Mono.empty()));
   }
 
   private Mono<Optional<StateHolder<S>>> getStateFromMemory(String id) {

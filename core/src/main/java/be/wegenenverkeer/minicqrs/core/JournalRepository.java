@@ -23,9 +23,11 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class JournalRepository<E> {
-  public static record EventHolder<E>(String id, long shard, E event, long sequence, Long globalSequence, LocalDateTime occured, JavaType type) {
+  public static record EventHolder<E>(String id, long shard, E event, long sequence, Long globalSequence,
+      LocalDateTime occured, JavaType type) {
 
-}
+  }
+
   private static Logger LOG = LoggerFactory.getLogger(JournalRepository.class);
 
   private final ObjectMapper objectMapper;
@@ -78,12 +80,14 @@ public class JournalRepository<E> {
         .map(entity -> fromDb(entity)).collectList();
   }
 
-  public Mono<Integer> saveEvents(List<EventHolder<E>> events) {
+  // Save the events, return the highest generated globalSequence number
+  public Mono<List<EventHolder<E>>> saveEvents(List<EventHolder<E>> events) {
     var records = events.stream().map(event -> toDb(event)).toList();
     var inserts = ctx.insertInto(JOURNAL)
         .columns(JournalRepository.columns)
-        .valuesOfRecords(records);
-    return Flux.from(inserts).collectList().map(r -> r.size());
+        .valuesOfRecords(records)
+        .returning();
+    return Flux.from(inserts).map(v -> fromDb(v)).collectList();
   }
 
   public Flux<EventHolder<E>> getEventsOnShardSince(long shard, long since, int maxEvents, JavaType eventType) {
