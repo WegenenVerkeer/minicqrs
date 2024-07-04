@@ -14,6 +14,7 @@ import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.util.Pair;
 import org.springframework.util.comparator.Comparators;
 
 import com.fasterxml.jackson.databind.JavaType;
@@ -92,19 +93,36 @@ public abstract class AbstractAggregateBehaviour<ID, S, C, E> {
             getRetryBackoffSpec().filter(t -> t instanceof org.jooq.exception.IntegrityConstraintViolationException));
   }
 
-  // Process command and return the events
-  public Mono<List<E>> processCommand(ID id, C command) {
-    return processCommandGetEventHolders(id, command)
-        .map(events -> events.stream().map(e -> e.event()).collect(Collectors.toList()));
-  }
+    // Process command and return the events
+    public Mono<List<E>> processCommandGetEvents(ID id, C command) {
+        return processCommand(id, command).map(Pair::getSecond);
+    }
 
-  // Process command and return the highest offset.
-  public Mono<ProjectionOffset> processCommandGetOffset(ID id, C command) {
-    return processCommandGetEventHolders(id, command).flatMap(events -> events.stream().map(e -> e.globalSequence())
-        .max(Comparators.comparable()).map(v -> Mono.just(new ProjectionOffset(getShard(id), v))).orElse(Mono.empty()));
-  }
+    // Process command and return the highest offset
+    public Mono<ProjectionOffset> processCommandGetOffset(ID id, C command) {
+        return processCommand(id, command).map(Pair::getFirst);
+    }
 
-  private Mono<Optional<StateHolder<S>>> getStateFromMemory(String id) {
+    // Process command and return both the highest offset and resultant events
+    public Mono<Pair<ProjectionOffset, List<E>>> processCommand(ID id, C command) {
+        return processCommandGetEventHolders(id, command)
+                .flatMap(events ->
+                        events.stream()
+                                .map(e -> e.globalSequence())
+                                .max(Comparators.comparable())
+                                .map(v ->
+                                        Mono.just(
+                                                Pair.of(
+                                                        new ProjectionOffset(getShard(id), v),
+                                                        events.stream().map(e -> e.event()).collect(Collectors.toList())
+                                                )
+                                        )
+                                )
+                                .orElse(Mono.empty())
+                );
+    }
+
+    private Mono<Optional<StateHolder<S>>> getStateFromMemory(String id) {
     return Mono.fromCallable(() -> {
       var state = Optional.ofNullable(cache.get(id));
       LOG.info("getStateFromMemory " + state.map(s -> Long.toString(s.sequence())).orElse(" not found "));
