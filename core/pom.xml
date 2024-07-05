@@ -10,7 +10,7 @@
 	</parent>
 
 	<groupId>be.wegenenverkeer.minicqrs</groupId>
-	<artifactId>core</artifactId>
+	<artifactId>minicqrs-core</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>Core</name>
 	<description>MiniCQRS core</description>
