@@ -1,6 +1,7 @@
 
 # minicqrs
 
+MiniCQRS is a minimal CQRS framework for Java on top of Spring, JOOQ and Postgres.
 
 
 ## Generating database classes:
