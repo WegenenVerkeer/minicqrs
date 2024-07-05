@@ -24,6 +24,7 @@ import be.wegenenverkeer.minicqrs.core.JournalRepository.EventHolder;
 import be.wegenenverkeer.minicqrs.core.SnapshotRepository.StateHolder;
 import be.wegenenverkeer.minicqrs.core.projection.ProjectionManager;
 import be.wegenenverkeer.minicqrs.core.projection.ProjectionOffset;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 import reactor.util.retry.RetryBackoffSpec;
@@ -120,6 +121,25 @@ public abstract class AbstractAggregateBehaviour<ID, S, C, E> {
                                 )
                                 .orElse(Mono.empty())
                 );
+    }
+
+    @FunctionalInterface
+    public interface EventToCommandGenerator<ID, C, E> {
+      Optional<Pair<ID, C>> command(ID id, E event);
+    }
+
+    // functie om aan de hand van een vorig resultaat extra commando's uit te voeren. De mogelijks uit te te voeren command wordt bepaald
+    // door de EventToCommandGenerator
+    public Mono<Pair<ProjectionOffset, List<E>>> chainCommandsFromEvents(
+            ID id,
+            Pair<ProjectionOffset, List<E>> offsetWithEvents,
+            EventToCommandGenerator<ID, C, E> eventToCommand
+    ) {
+      return Flux.fromIterable(offsetWithEvents.getSecond())
+              .map(event -> eventToCommand.command(id, event))
+              .flatMap(maybeCommand -> maybeCommand.map(pair -> processCommand(pair.getFirst(), pair.getSecond())).orElse(Mono.empty()))
+              .switchIfEmpty(Mono.just(offsetWithEvents)) // als er geen commands verwerkt werden, stuur gegeven offset terug
+              .last();
     }
 
     private Mono<Optional<StateHolder<S>>> getStateFromMemory(String id) {
