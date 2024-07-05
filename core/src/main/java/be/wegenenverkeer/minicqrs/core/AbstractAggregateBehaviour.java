@@ -125,20 +125,19 @@ public abstract class AbstractAggregateBehaviour<ID, S, C, E> {
 
     @FunctionalInterface
     public interface EventToCommandGenerator<ID, C, E> {
-      Optional<Pair<ID, C>> command(E event);
+        Optional<Pair<ID, C>> command(E event);
     }
 
-    // functie om aan de hand van een vorig resultaat extra commando's uit te voeren. De mogelijks uit te te voeren command wordt bepaald
-    // door de EventToCommandGenerator
-    public Mono<Pair<ProjectionOffset, List<E>>> chainCommandsFromEvents(
-            Pair<ProjectionOffset, List<E>> offsetWithEvents,
-            EventToCommandGenerator<ID, C, E> eventToCommand
-    ) {
-      return Flux.fromIterable(offsetWithEvents.getSecond())
-              .map(eventToCommand::command)
-              .flatMap(maybeCommand -> maybeCommand.map(pair -> processCommand(pair.getFirst(), pair.getSecond())).orElse(Mono.empty()))
-              .switchIfEmpty(Mono.just(offsetWithEvents)) // als er geen commands verwerkt werden, stuur gegeven offset terug
-              .last();
+    // Process command met extra optie om vanuit de gegenereerde events commands uit te voeren. De uit te voeren commands worden
+    // bepaald door de EventToCommandGenerator
+    public Mono<Pair<ProjectionOffset, List<E>>> processCommand(ID id, C command, EventToCommandGenerator<ID, C, E> eventToCommand) {
+        return processCommand(id, command).flatMap(result ->
+          Flux.fromIterable(result.getSecond())
+                  .map(eventToCommand::command)
+                  .flatMap(maybeCommand -> maybeCommand.map(pair -> processCommand(pair.getFirst(), pair.getSecond())).orElse(Mono.empty()))
+                  .switchIfEmpty(Mono.just(result)) // als er geen commands verwerkt werden, stuur resultaat van oorspronkelijk command
+                  .last()
+        );
     }
 
     private Mono<Optional<StateHolder<S>>> getStateFromMemory(String id) {
