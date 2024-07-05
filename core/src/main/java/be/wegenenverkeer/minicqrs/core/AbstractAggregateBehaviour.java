@@ -125,18 +125,17 @@ public abstract class AbstractAggregateBehaviour<ID, S, C, E> {
 
     @FunctionalInterface
     public interface EventToCommandGenerator<ID, C, E> {
-      Optional<Pair<ID, C>> command(ID id, E event);
+      Optional<Pair<ID, C>> command(E event);
     }
 
     // functie om aan de hand van een vorig resultaat extra commando's uit te voeren. De mogelijks uit te te voeren command wordt bepaald
     // door de EventToCommandGenerator
     public Mono<Pair<ProjectionOffset, List<E>>> chainCommandsFromEvents(
-            ID id,
             Pair<ProjectionOffset, List<E>> offsetWithEvents,
             EventToCommandGenerator<ID, C, E> eventToCommand
     ) {
       return Flux.fromIterable(offsetWithEvents.getSecond())
-              .map(event -> eventToCommand.command(id, event))
+              .map(eventToCommand::command)
               .flatMap(maybeCommand -> maybeCommand.map(pair -> processCommand(pair.getFirst(), pair.getSecond())).orElse(Mono.empty()))
               .switchIfEmpty(Mono.just(offsetWithEvents)) // als er geen commands verwerkt werden, stuur gegeven offset terug
               .last();
