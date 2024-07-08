@@ -1,3 +1,4 @@
+![build workflow](https://github.com/WegenenVerkeer/minicqrs/actions/workflows/maven.yml/badge.svg)
 
 # minicqrs
 
