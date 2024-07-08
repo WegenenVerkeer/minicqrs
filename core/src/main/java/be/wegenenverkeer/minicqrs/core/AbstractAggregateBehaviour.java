@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.util.Pair;
+import org.springframework.transaction.reactive.TransactionalOperator;
 import org.springframework.util.comparator.Comparators;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -37,6 +38,8 @@ public abstract class AbstractAggregateBehaviour<ID, S, C, E> {
   @Autowired private JournalRepository<E> journalRepository;
 
   @Autowired private SnapshotRepository<S> snapshotRepository;
+
+  @Autowired protected TransactionalOperator rxtx;
 
   @SuppressWarnings({"rawtypes", "unchecked"})
   public AbstractAggregateBehaviour(
@@ -149,21 +152,22 @@ public abstract class AbstractAggregateBehaviour<ID, S, C, E> {
   // bepaald door de EventToCommandGenerator
   public Mono<Pair<ProjectionOffset, List<E>>> processCommand(
       ID id, C command, EventToCommandGenerator<ID, C, E> eventToCommand) {
-    return processCommand(id, command)
-        .flatMap(
-            result ->
-                Flux.fromIterable(result.getSecond())
-                    .map(eventToCommand::command)
-                    .flatMap(
-                        maybeCommand ->
-                            maybeCommand
-                                .map(pair -> processCommand(pair.getFirst(), pair.getSecond()))
-                                .orElse(Mono.empty()))
-                    .switchIfEmpty(
-                        Mono.just(
-                            result)) // als er geen commands verwerkt werden, stuur resultaat van
-                    // oorspronkelijk command
-                    .last());
+    return rxtx.transactional(
+        processCommand(id, command)
+            .flatMap(
+                result ->
+                    Flux.fromIterable(result.getSecond())
+                        .map(eventToCommand::command)
+                        .flatMap(
+                            maybeCommand ->
+                                maybeCommand
+                                    .map(pair -> processCommand(pair.getFirst(), pair.getSecond()))
+                                    .orElse(Mono.empty()))
+                        .switchIfEmpty(
+                            Mono.just(
+                                result)) // als er geen commands verwerkt werden, stuur resultaat
+                        // van oorspronkelijk command
+                        .last()));
   }
 
   private Mono<Optional<StateHolder<S>>> getStateFromMemory(String id) {
