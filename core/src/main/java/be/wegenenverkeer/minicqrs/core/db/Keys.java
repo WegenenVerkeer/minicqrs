@@ -3,32 +3,43 @@
  */
 package be.wegenenverkeer.minicqrs.core.db;
 
-
 import be.wegenenverkeer.minicqrs.core.db.tables.Journal;
 import be.wegenenverkeer.minicqrs.core.db.tables.ProjectionOffset;
 import be.wegenenverkeer.minicqrs.core.db.tables.Snapshot;
 import be.wegenenverkeer.minicqrs.core.db.tables.records.JournalRecord;
 import be.wegenenverkeer.minicqrs.core.db.tables.records.ProjectionOffsetRecord;
 import be.wegenenverkeer.minicqrs.core.db.tables.records.SnapshotRecord;
-
 import org.jooq.TableField;
 import org.jooq.UniqueKey;
 import org.jooq.impl.DSL;
 import org.jooq.impl.Internal;
 
-
-/**
- * A class modelling foreign key relationships and constraints of tables in
- * public.
- */
-@SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
+/** A class modelling foreign key relationships and constraints of tables in public. */
+@SuppressWarnings({"all", "unchecked", "rawtypes", "this-escape"})
 public class Keys {
 
-    // -------------------------------------------------------------------------
-    // UNIQUE and PRIMARY KEY definitions
-    // -------------------------------------------------------------------------
+  // -------------------------------------------------------------------------
+  // UNIQUE and PRIMARY KEY definitions
+  // -------------------------------------------------------------------------
 
-    public static final UniqueKey<JournalRecord> JOURNAL_PKEY = Internal.createUniqueKey(Journal.JOURNAL, DSL.name("journal_pkey"), new TableField[] { Journal.JOURNAL.TYPE, Journal.JOURNAL.ID, Journal.JOURNAL.SEQUENCE }, true);
-    public static final UniqueKey<ProjectionOffsetRecord> PROJECTION_OFFSET_PKEY = Internal.createUniqueKey(ProjectionOffset.PROJECTION_OFFSET, DSL.name("projection_offset_pkey"), new TableField[] { ProjectionOffset.PROJECTION_OFFSET.PROJECTION, ProjectionOffset.PROJECTION_OFFSET.SHARD }, true);
-    public static final UniqueKey<SnapshotRecord> SNAPSHOT_PKEY = Internal.createUniqueKey(Snapshot.SNAPSHOT, DSL.name("snapshot_pkey"), new TableField[] { Snapshot.SNAPSHOT.TYPE, Snapshot.SNAPSHOT.ID }, true);
+  public static final UniqueKey<JournalRecord> JOURNAL_PKEY =
+      Internal.createUniqueKey(
+          Journal.JOURNAL,
+          DSL.name("journal_pkey"),
+          new TableField[] {Journal.JOURNAL.TYPE, Journal.JOURNAL.ID, Journal.JOURNAL.SEQUENCE},
+          true);
+  public static final UniqueKey<ProjectionOffsetRecord> PROJECTION_OFFSET_PKEY =
+      Internal.createUniqueKey(
+          ProjectionOffset.PROJECTION_OFFSET,
+          DSL.name("projection_offset_pkey"),
+          new TableField[] {
+            ProjectionOffset.PROJECTION_OFFSET.PROJECTION, ProjectionOffset.PROJECTION_OFFSET.SHARD
+          },
+          true);
+  public static final UniqueKey<SnapshotRecord> SNAPSHOT_PKEY =
+      Internal.createUniqueKey(
+          Snapshot.SNAPSHOT,
+          DSL.name("snapshot_pkey"),
+          new TableField[] {Snapshot.SNAPSHOT.TYPE, Snapshot.SNAPSHOT.ID},
+          true);
 }

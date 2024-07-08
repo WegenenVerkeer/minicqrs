@@ -3,30 +3,20 @@
  */
 package be.wegenenverkeer.minicqrs.core.db;
 
-
 import be.wegenenverkeer.minicqrs.core.db.tables.Journal;
 import be.wegenenverkeer.minicqrs.core.db.tables.ProjectionOffset;
 import be.wegenenverkeer.minicqrs.core.db.tables.Snapshot;
 
-
-/**
- * Convenience access to all tables in public.
- */
-@SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
+/** Convenience access to all tables in public. */
+@SuppressWarnings({"all", "unchecked", "rawtypes", "this-escape"})
 public class Tables {
 
-    /**
-     * The table <code>public.journal</code>.
-     */
-    public static final Journal JOURNAL = Journal.JOURNAL;
+  /** The table <code>public.journal</code>. */
+  public static final Journal JOURNAL = Journal.JOURNAL;
 
-    /**
-     * The table <code>public.projection_offset</code>.
-     */
-    public static final ProjectionOffset PROJECTION_OFFSET = ProjectionOffset.PROJECTION_OFFSET;
+  /** The table <code>public.projection_offset</code>. */
+  public static final ProjectionOffset PROJECTION_OFFSET = ProjectionOffset.PROJECTION_OFFSET;
 
-    /**
-     * The table <code>public.snapshot</code>.
-     */
-    public static final Snapshot SNAPSHOT = Snapshot.SNAPSHOT;
+  /** The table <code>public.snapshot</code>. */
+  public static final Snapshot SNAPSHOT = Snapshot.SNAPSHOT;
 }
