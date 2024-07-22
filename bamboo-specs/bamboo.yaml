@@ -28,10 +28,11 @@ Package and Publish:
           - |-
             set -e
             export VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+            export TIMESTAMP=$(date -d "$bamboo_buildTimeStamp" +%Y%m%d%H%M%S)
 
-            echo "Publish typespec"
+            echo "Publish typespec $VERSION.$TIMESTAMP"
             cd geojson-api-spec
-            npm version ${VERSION}
+            npm version $VERSION.$TIMESTAMP
             npm ci
             npm run generate
             npm publish
