@@ -31,9 +31,10 @@ Package and Publish:
 
             echo "Publish typespec"
             cd geojson-api-spec
+            npm run generate
             npm publish
             cd ..
-            
+
             echo "Package en publish ... $VERSION"
             echo "JAVA_HOME = $JAVA_HOME"
             mvn -U clean deploy -DskipTests
