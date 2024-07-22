@@ -1,3 +1,4 @@
+import "@typespec/openapi3";
 namespace geojson;
 
 using OpenAPI;
