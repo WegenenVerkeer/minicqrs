@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.IntStream;
+
+import org.springframework.data.util.Pair;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
@@ -32,13 +34,13 @@ class TestController {
     if (parallel) {
       List<Mono<List<BaseEvent>>> monos = new ArrayList<>(count);
       for (int i = 0; i < count; i++) {
-        monos.add(aggregate.processCommand(id, new IncrementCounter()));
+        monos.add(aggregate.processCommand(id, new IncrementCounter()).map(Pair::getSecond));
       }
       return Flux.merge(monos).collectList().map(l -> l.getLast());
     } else {
       return Flux.fromStream(IntStream.range(0, count).boxed())
           .concatMap(i -> aggregate.processCommand(id, new IncrementCounter()))
-          .collectList().map(l -> l.getLast());
+          .collectList().map(l -> l.getLast().getSecond());
     }
 
   }

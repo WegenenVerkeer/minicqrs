@@ -1,0 +1,31 @@
+{
+  "name": "@wegenenverkeer/geojson-api-spec",
+  "version": "1.0.0",
+  "description": "Some geojson typespec definitions",
+  "type": "module",
+  "main": "dist/src/index.js",
+  "scripts": {
+    "compile": "tsp compile lib/main.tsp",
+    "generate": "npm run compile"
+  },
+  "exports" : {
+    ".": {
+      "default": "./dist/src/index.js",
+      "types": "./dist/src/index.d.ts"
+    }
+  },
+  "tspMain": "./lib/main.tsp",
+  "author": "",
+  "license": "ISC",
+  "peerDependencies": {
+    "@typespec/compiler": "^0.58.1",
+    "@typespec/openapi3": "^0.58.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.3"
+  },
+  "publishConfig": {
+    "registry": "https://collab.mow.vlaanderen.be/artifacts/repository/npm-internal/",
+    "access": "public"
+  }
+}

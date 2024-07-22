@@ -14,12 +14,12 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<name>Core</name>
 	<description>MiniCQRS core</description>
-	
+
 	<properties>
 		<java.version>21</java.version>
 		<jooq.version>3.19.8</jooq.version>
 	</properties>
-	
+
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -70,7 +70,7 @@
 			<groupId>org.jooq</groupId>
 			<artifactId>jooq</artifactId>
 			<version>${jooq.version}</version>
-	</dependency>		
+		</dependency>
 		<dependency>
 			<groupId>org.jooq</groupId>
 			<artifactId>jooq-jackson-extensions</artifactId>
@@ -80,7 +80,8 @@
 			<groupId>org.jooq</groupId>
 			<artifactId>jooq-postgres-extensions</artifactId>
 			<version>${jooq.version}</version>
-	</dependency>	</dependencies>
+		</dependency>
+	</dependencies>
 
 	<build>
 		<plugins>
