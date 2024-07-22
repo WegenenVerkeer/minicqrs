@@ -31,6 +31,7 @@ Package and Publish:
 
             echo "Publish typespec"
             cd geojson-api-spec
+            npm version ${VERSION}
             npm ci
             npm run generate
             npm publish
