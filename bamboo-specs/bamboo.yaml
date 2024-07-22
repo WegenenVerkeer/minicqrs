@@ -30,9 +30,9 @@ Package and Publish:
             export MINORVERSION=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec | sed -e 's/-SNAPSHOT//g' | sed 's/[0-9]*$//g')
             export VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
             if [ ! -z $BAMBOO_AGENT_HOME ]; then
-              BUILD_NUMBER=.${bamboo_buildNumber}
+              BUILD_NUMBER=${bamboo_buildNumber}
             else
-              BUILD_NUMBER=.0-SNAPSHOT
+              BUILD_NUMBER=0-SNAPSHOT
             fi
 
             echo "Publish typespec ${MINORVERSION}${BUILD_NUMBER}"
