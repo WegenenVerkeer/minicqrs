@@ -27,13 +27,17 @@ Package and Publish:
         scripts:
           - |-
             set -e
-            export FULLVERSION=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec | sed -e 's/-SNAPSHOT//g')
+            export MINORVERSION=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec | sed -e 's/-SNAPSHOT//g' | sed 's/\.[0-9]*$//g')
             export VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
-            export TIMESTAMP=$(date -d "$bamboo_buildTimeStamp" +%Y%m%d%H%M%S)
+            if [ ! -z $BAMBOO_AGENT_HOME ]; then
+              BUILD_NUMBER=.${bamboo_buildNumber}
+            else
+              BUILD_NUMBER=.0-SNAPSHOT
+            fi
 
-            echo "Publish typespec $FULLVERSION.$TIMESTAMP"
+            echo "Publish typespec $MINORVERSION.$BUILD_NUMBER"
             cd geojson-api-spec
-            npm version $FULLVERSION.$TIMESTAMP
+            npm version $MINORVERSION.$BUILD_NUMBER
             npm ci
             npm run generate
             npm publish
